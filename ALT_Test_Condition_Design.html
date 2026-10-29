@@ -1,0 +1,719 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>가속수명시험 시료수-시험시간 계산 프로그램 ⚡</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: #DDE4EC;
+            font-family: "Malgun Gothic", "Apple SD Gothic Neo", "Segoe UI", sans-serif;
+            font-size: 10pt;
+            color: #1F2933;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 16px;
+        }
+
+        /* QMainWindow container (1000 x 600 default matching PyQt5) */
+        .main-window {
+            width: 1000px;
+            max-width: 100%;
+            min-height: 600px;
+            height: 620px;
+            background-color: #EEF2F6;
+            border: 1px solid #B8C2CC;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(16, 42, 67, 0.15);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* Window Title Bar */
+        .title-bar {
+            background: linear-gradient(180deg, #F8FAFC 0%, #E4EBF1 100%);
+            border-bottom: 1px solid #B8C2CC;
+            padding: 10px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            user-select: none;
+        }
+
+        .title-bar-text {
+            font-weight: 700;
+            font-size: 10.5pt;
+            color: #243B53;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .title-bar-controls {
+            display: flex;
+            gap: 6px;
+        }
+
+        .win-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            border: 1px solid rgba(0, 0, 0, 0.12);
+        }
+        .win-dot.min { background-color: #F59E0B; }
+        .win-dot.max { background-color: #10B981; }
+        .win-dot.close { background-color: #EF4444; cursor: pointer; }
+
+        /* Central Widget & Main Horizontal Splitter Layout */
+        .central-widget {
+            flex: 1;
+            display: flex;
+            flex-direction: row;
+            padding: 8px;
+            gap: 0;
+            min-height: 0;
+            overflow: hidden;
+        }
+
+        /* Left Panel (380px default ratio) */
+        .left-panel {
+            width: 38%;
+            min-width: 290px;
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            min-height: 0;
+        }
+
+        /* QSplitter Handle */
+        .splitter-handle {
+            width: 8px;
+            cursor: col-resize;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            user-select: none;
+        }
+
+        .splitter-handle::after {
+            content: "";
+            width: 2px;
+            height: 40px;
+            background-color: #BCCCDC;
+            border-radius: 1px;
+            transition: background-color 0.2s;
+        }
+
+        .splitter-handle:hover::after {
+            background-color: #2F80ED;
+        }
+
+        /* Right Panel (620px default ratio) */
+        .right-panel {
+            flex: 1;
+            min-width: 340px;
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            min-height: 0;
+        }
+
+        /* QGroupBox Styling - overflow: visible 유지하여 상단 Title 잘림 완벽 방지 */
+        .group-box {
+            position: relative;
+            border: 1px solid #B8C2CC;
+            border-radius: 8px;
+            margin-top: 10px;
+            padding: 22px 15px 18px 15px;
+            background-color: #F8FAFC;
+        }
+
+        .group-box.output-group {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 22px 12px 12px 12px;
+            min-height: 0;
+        }
+
+        .group-box-title {
+            position: absolute;
+            top: -11px;
+            left: 12px;
+            background: linear-gradient(180deg, #EEF2F6 50%, #F8FAFC 50%);
+            padding: 0 6px;
+            font-weight: bold;
+            color: #243B53;
+            font-size: 10pt;
+            line-height: 1.3;
+            white-space: nowrap;
+            z-index: 2;
+        }
+
+        /* Input Grid Layout */
+        .input-grid {
+            display: grid;
+            grid-template-columns: 145px 1fr;
+            row-gap: 15px;
+            column-gap: 10px;
+            align-items: center;
+        }
+
+        .input-label {
+            color: #243B53;
+            font-weight: bold;
+            font-size: 10pt;
+        }
+
+        .line-edit {
+            width: 100%;
+            background-color: #FFFFFF;
+            border: 1px solid #BCCCDC;
+            border-radius: 6px;
+            padding: 6px 8px;
+            font-size: 10pt;
+            color: #1F2933;
+            font-family: inherit;
+            outline: none;
+            transition: border-color 0.15s, box-shadow 0.15s;
+        }
+
+        .line-edit:focus {
+            border-color: #2F80ED;
+            box-shadow: 0 0 0 2px rgba(47, 128, 237, 0.18);
+        }
+
+        /* QPushButton Styling */
+        .btn {
+            border: none;
+            border-radius: 7px;
+            padding: 10px 12px;
+            font-weight: bold;
+            font-size: 10pt;
+            cursor: pointer;
+            font-family: inherit;
+            transition: background-color 0.15s;
+            text-align: center;
+        }
+
+        .btn-execute,
+        .btn-save {
+            background-color: #2F80ED;
+            color: #FFFFFF;
+        }
+
+        .btn-execute:hover,
+        .btn-save:hover {
+            background-color: #1C64D1;
+        }
+
+        .btn-execute:active,
+        .btn-save:active {
+            background-color: #164E9E;
+        }
+
+        .spacer {
+            flex: 1;
+        }
+
+        .btn-exit {
+            background-color: #D92D20;
+            color: #FFFFFF;
+            padding: 10px 11px;
+            font-weight: 700;
+        }
+
+        .btn-exit:hover {
+            background-color: #B42318;
+        }
+
+        .btn-exit:active {
+            background-color: #7A271A;
+        }
+
+        /* QTextEdit Output Area */
+        .output-text {
+            flex: 1;
+            min-height: 0;
+            background-color: #FFFFFF;
+            color: #102A43;
+            border: 1px solid #BCCCDC;
+            border-radius: 6px;
+            font-family: Consolas, "Courier New", "Malgun Gothic", monospace;
+            font-size: 10.5pt;
+            line-height: 1.55;
+            padding: 10px 12px;
+            white-space: pre;
+            overflow: auto;
+        }
+
+        /* Custom Highlight Styles per Context Specification */
+        .section-title {
+            font-weight: bold;
+            color: #102A43;
+        }
+
+        .key-result {
+            color: #0052CC;
+            font-weight: bold;
+        }
+
+        @media (max-width: 768px) {
+            .main-window {
+                height: auto;
+                min-height: 100vh;
+            }
+            .central-widget {
+                flex-direction: column;
+            }
+            .left-panel {
+                width: 100% !important;
+            }
+            .splitter-handle {
+                display: none;
+            }
+            .right-panel {
+                min-height: 380px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="main-window" id="mainWindow">
+        <!-- Window Title Bar -->
+        <div class="title-bar">
+            <div class="title-bar-text">가속수명시험 시료수-시험시간 계산 프로그램 ⚡</div>
+            <div class="title-bar-controls">
+                <span class="win-dot min" title="최소화"></span>
+                <span class="win-dot max" title="최대화"></span>
+                <span class="win-dot close" title="종료" onclick="closeProgram()"></span>
+            </div>
+        </div>
+
+        <!-- Central Widget -->
+        <div class="central-widget" id="centralWidget">
+            <!-- 왼쪽 윈도우 (Left panel): 7개 변수 입력창 및 버튼 -->
+            <div class="left-panel" id="leftPanel">
+                <div class="group-box">
+                    <span class="group-box-title">데이터 입력 (7개 변수)</span>
+                    <div class="input-grid">
+                        <label class="input-label" for="inp_LB">수명목표 B10 (개월)</label>
+                        <input type="text" id="inp_LB" class="line-edit" value="120">
+
+                        <label class="input-label" for="inp_R">신뢰도 (R)</label>
+                        <input type="text" id="inp_R" class="line-edit" value="0.9">
+
+                        <label class="input-label" for="inp_CL">신뢰수준 (CL)</label>
+                        <input type="text" id="inp_CL" class="line-edit" value="0.9">
+
+                        <label class="input-label" for="inp_r">허용고장수 (r)</label>
+                        <input type="text" id="inp_r" class="line-edit" value="1">
+
+                        <label class="input-label" for="inp_beta">형상모수 (β)</label>
+                        <input type="text" id="inp_beta" class="line-edit" value="2.5">
+
+                        <label class="input-label" for="inp_AF">가속계수 (AF)</label>
+                        <input type="text" id="inp_AF" class="line-edit" value="50">
+
+                        <label class="input-label" for="inp_n">시료수 (n)</label>
+                        <input type="text" id="inp_n" class="line-edit" value="50">
+                    </div>
+                </div>
+
+                <!-- 실행 버튼 -->
+                <button type="button" class="btn btn-execute" id="btnExecute" onclick="calculateResults(false)">▶ 실행</button>
+
+                <div class="spacer"></div>
+
+                <!-- 종료 버튼 -->
+                <button type="button" class="btn btn-exit" id="btnExit" onclick="closeProgram()">❌ 종료</button>
+            </div>
+
+            <!-- Splitter Handle -->
+            <div class="splitter-handle" id="splitterHandle" title="드래그하여 크기 조절"></div>
+
+            <!-- 오른쪽 윈도우 (Right panel): 계산 결과 출력창 및 텍스트 파일 저장 버튼 -->
+            <div class="right-panel" id="rightPanel">
+                <div class="group-box output-group">
+                    <span class="group-box-title">계산 결과 출력</span>
+                    <div class="output-text" id="outputText"></div>
+                </div>
+
+                <!-- 텍스트 파일 저장 버튼 -->
+                <button type="button" class="btn btn-save" id="btnSaveTxt" onclick="saveAsTextFile()">💾 텍스트 파일 저장</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ==============================================================================================
+        // 1. Statistical Functions: Exact Chi-Square PPF (matching scipy.stats.chi2.ppf)
+        // ==============================================================================================
+
+        // Lanczos approximation for ln(Gamma(z))
+        function gammaln(z) {
+            const c = [
+                0.99999999999980993,
+                676.5203681218851,
+                -1259.1392167224028,
+                771.32342877765313,
+                -176.61502916214059,
+                12.507343278686905,
+                -0.13857109526572012,
+                9.9843695780195716e-6,
+                1.5056327351493116e-7
+            ];
+            let x = z;
+            let y = z;
+            let tmp = x + 7.5;
+            tmp -= (x + 0.5) * Math.log(tmp);
+            let ser = c[0];
+            for (let i = 1; i < c.length; i++) {
+                y += 1;
+                ser += c[i] / y;
+            }
+            return -tmp + Math.log(2.5066282746310005 * ser / x);
+        }
+
+        // Regularized lower incomplete gamma function P(a, x)
+        function gammainc(a, x) {
+            if (x <= 0) return 0.0;
+            const gln = gammaln(a);
+            if (x < a + 1.0) {
+                // Series representation
+                let ap = a;
+                let del = 1.0 / a;
+                let sum = del;
+                for (let n = 1; n <= 500; n++) {
+                    ap += 1.0;
+                    del *= x / ap;
+                    sum += del;
+                    if (Math.abs(del) < Math.abs(sum) * 1e-15) {
+                        return sum * Math.exp(-x + a * Math.log(x) - gln);
+                    }
+                }
+                return sum * Math.exp(-x + a * Math.log(x) - gln);
+            } else {
+                // Continued fraction representation (Lentz's method)
+                let b = x + 1.0 - a;
+                let c = 1.0 / 1e-30;
+                let d = 1.0 / b;
+                let h = d;
+                for (let i = 1; i <= 500; i++) {
+                    let an = -i * (i - a);
+                    b += 2.0;
+                    d = an * d + b;
+                    if (Math.abs(d) < 1e-30) d = 1e-30;
+                    c = b + an / c;
+                    if (Math.abs(c) < 1e-30) c = 1e-30;
+                    d = 1.0 / d;
+                    let del = d * c;
+                    h *= del;
+                    if (Math.abs(del - 1.0) < 1e-15) break;
+                }
+                return 1.0 - Math.exp(-x + a * Math.log(x) - gln) * h;
+            }
+        }
+
+        // Standard normal inverse CDF (Acklam's algorithm) for initial guess
+        function normInv(p) {
+            const a = [-3.969683028665376e+01, 2.209460984245205e+02, -2.759285104469687e+02,
+                        1.383577518672690e+02, -3.066479806614716e+01, 2.506628277459239e+00];
+            const b = [-5.447609879822406e+01, 1.615858368580409e+02, -1.556989798598866e+02,
+                        6.680131188771972e+01, -1.328068155288572e+01];
+            const c = [-7.784894002430293e-03, -3.223964580411365e-01, -2.400758277161838e+00,
+                       -2.549732539343734e+00, 4.374664141464968e+00, 2.938163982698783e+00];
+            const d = [7.784695709041462e-03, 3.224671290700398e-01, 2.445134137142996e+00,
+                       3.754408661907416e+00];
+            const pLow = 0.02425;
+            const pHigh = 1.0 - pLow;
+            let q, r;
+            if (p < pLow) {
+                q = Math.sqrt(-2.0 * Math.log(p));
+                return (((((c[0]*q+c[1])*q+c[2])*q+c[3])*q+c[4])*q+c[5]) /
+                       ((((d[0]*q+d[1])*q+d[2])*q+d[3])*q+1.0);
+            } else if (p <= pHigh) {
+                q = p - 0.5;
+                r = q * q;
+                return (((((a[0]*r+a[1])*r+a[2])*r+a[3])*r+a[4])*r+a[5])*q /
+                       (((((b[0]*r+b[1])*r+b[2])*r+b[3])*r+b[4])*r+1.0);
+            } else {
+                q = Math.sqrt(-2.0 * Math.log(1.0 - p));
+                return -(((((c[0]*q+c[1])*q+c[2])*q+c[3])*q+c[4])*q+c[5]) /
+                        ((((d[0]*q+d[1])*q+d[2])*q+d[3])*q+1.0);
+            }
+        }
+
+        // Inverse of Chi-Square CDF: scipy.stats.chi2.ppf(p, df)
+        function chi2Ppf(p, df) {
+            if (p <= 0) return 0.0;
+            if (p >= 1) return Infinity;
+            if (df === 2) return -2.0 * Math.log(1.0 - p);
+
+            const a = df / 2.0;
+            const gln = gammaln(a);
+
+            // Wilson-Hilferty initial guess for x = chi2 / 2
+            const z = normInv(p);
+            const w = 1.0 - 1.0 / (9.0 * a) + z / Math.sqrt(9.0 * a);
+            let x = a * Math.max(0.01, w * w * w);
+
+            // Newton-Raphson refinement on gammainc(a, x) = p
+            for (let iter = 0; iter < 50; iter++) {
+                const cdf = gammainc(a, x);
+                const err = cdf - p;
+                if (Math.abs(err) < 1e-14) break;
+                const pdf = Math.exp((a - 1.0) * Math.log(x) - x - gln);
+                if (pdf <= 0) break;
+                let step = err / pdf;
+                x = Math.max(x * 0.1, x - step);
+            }
+            return 2.0 * x;
+        }
+
+        // ==============================================================================================
+        // 2. Python String Formatting Helpers (:g and float str)
+        // ==============================================================================================
+        function formatPyG(val) {
+            if (!Number.isFinite(val)) return String(val);
+            if (val === 0) return "0";
+            const absVal = Math.abs(val);
+            if (absVal >= 1e6 || absVal < 1e-4) {
+                return val.toExponential(5).replace(/\.?0+e/, "e");
+            }
+            return Number(val.toPrecision(6)).toString();
+        }
+
+        function formatPyFloat(val) {
+            if (Number.isInteger(val)) {
+                return val.toFixed(1);
+            }
+            return String(val);
+        }
+
+        // ==============================================================================================
+        // 3. Calculation & Events (Matching 01_윈도우_GUI_시료수계산.py)
+        // ==============================================================================================
+        let isInitialAutoRun = true;
+
+        function parseStrictFloat(str) {
+            const trimmed = str.trim();
+            if (trimmed === "" || isNaN(Number(trimmed))) return NaN;
+            return Number(trimmed);
+        }
+
+        function parseStrictInt(str) {
+            const trimmed = str.trim();
+            if (!/^[+-]?\d+$/.test(trimmed)) return NaN;
+            return parseInt(trimmed, 10);
+        }
+
+        function calculateResults(autoRun = false) {
+            const strLB = document.getElementById("inp_LB").value;
+            const strR = document.getElementById("inp_R").value;
+            const strCL = document.getElementById("inp_CL").value;
+            const str_r = document.getElementById("inp_r").value;
+            const strBeta = document.getElementById("inp_beta").value;
+            const strAF = document.getElementById("inp_AF").value;
+            const strN = document.getElementById("inp_n").value;
+
+            const LB = parseStrictFloat(strLB);
+            const R = parseStrictFloat(strR);
+            const CL = parseStrictFloat(strCL);
+            const r = parseStrictInt(str_r);
+            const beta = parseStrictFloat(strBeta);
+            const AF = parseStrictFloat(strAF);
+            const n = parseStrictFloat(strN);
+
+            if ([LB, R, CL, r, beta, AF, n].some(v => Number.isNaN(v))) {
+                alert("입력 오류: 모든 변수에 유효한 숫자를 입력해주세요.");
+                return;
+            }
+
+            try {
+                if (R <= 0 || R >= 1 || CL <= 0 || CL >= 1 || r < 0 || beta <= 0 || AF <= 0 || n <= 0 || LB <= 0) {
+                    throw new Error("신뢰도(R)와 신뢰수준(CL)은 0과 1 사이의 값이어야 하며, 수명목표/형상모수/가속계수/시료수는 양수, 허용고장수(r)는 0 이상의 정수여야 합니다.");
+                }
+
+                const dof = 2 * (r + 1);
+
+                // chi2(CL, dof) : 신뢰수준과 허용고장수를 연결하는 통계적 패널티 값
+                const chi2_val = chi2Ppf(CL, dof);
+
+                // 카이제곱 분포는 CL과 허용고장수 r을 필요 총 정규화 수명(A)이라는 값으로 변환
+                const A = chi2_val / (2 * (-Math.log(R)));
+
+                // n*(h*AF/LB)**beta = A 식에서 test time h를 구함
+                const test_time_month = (LB / AF) * Math.pow(A / n, 1 / beta);
+                const test_time_day = test_time_month * 30;
+
+                const h = test_time_month; // 시험시간
+                const samples = A / Math.pow((h * AF / LB), beta);
+
+                const nStr = formatPyFloat(n);
+                const clStr = formatPyFloat(CL);
+
+                // 입력 데이터 및 계산 결과 포맷팅 (작업지도서 Bold & Blue Bold 요구사항 반영)
+                const blockHtml =
+                    `<span class="section-title">1. 데이터 입력값</span>\n` +
+                    `   - 수명목표 B10(개월) : ${formatPyG(LB)}\n` +
+                    `   - 신뢰도(R) : ${formatPyG(R)}\n` +
+                    `   - 신뢰수준(CL) : ${formatPyG(CL)}\n` +
+                    `   - 허용고장수(r) : ${formatPyG(r)}\n` +
+                    `   - 형상모수(β) : ${formatPyG(beta)}\n` +
+                    `   - 가속계수(AF) : ${formatPyG(AF)}\n` +
+                    `   - 시료수(n) : ${formatPyG(n)}\n\n` +
+                    `<span class="section-title">2. 계산 결과 출력</span>\n` +
+                    `   - 자유도 ${dof}, 신뢰수준 ${clStr}일 때 카이제곱 값: ${chi2_val.toFixed(4)}\n` +
+                    `   - <span class="key-result">시료수 ${nStr}</span>, A는 ${A.toFixed(2)}일 때 <span class="key-result">시험시간은 : ${test_time_month.toFixed(2)}개월</span>\n` +
+                    `   - <span class="key-result">시료수 ${nStr}</span>, A는 ${A.toFixed(2)}일 때 <span class="key-result">시험시간은 : ${test_time_day.toFixed(2)}일</span>\n` +
+                    `   - <span class="key-result">시험시간 ${h.toFixed(2)}개월</span>, A는 ${A.toFixed(2)}일 때 <span class="key-result">시험시료수는 : ${samples.toFixed(0)}개</span>\n` +
+                    `${"-".repeat(60)}\n`;
+
+                const outputEl = document.getElementById("outputText");
+                if (autoRun) {
+                    outputEl.innerHTML = blockHtml;
+                    isInitialAutoRun = true;
+                } else {
+                    if (isInitialAutoRun) {
+                        outputEl.innerHTML = blockHtml;
+                        isInitialAutoRun = false;
+                    } else {
+                        outputEl.innerHTML += blockHtml + "\n";
+                    }
+                    outputEl.scrollTop = outputEl.scrollHeight;
+                }
+            } catch (e) {
+                alert("계산 오류: 계산 중 오류가 발생했습니다.\n\n" + e.message);
+            }
+        }
+
+        // ==============================================================================================
+        // 4. Save Output as Text File (*.txt) with Folder & Filename Selection
+        // ==============================================================================================
+        async function saveAsTextFile() {
+            const outputEl = document.getElementById("outputText");
+            const rawText = (outputEl.innerText || outputEl.textContent || "").trimEnd();
+
+            if (!rawText) {
+                alert("저장할 계산 결과 데이터가 없습니다. 먼저 [▶ 실행] 버튼을 눌러 계산을 수행해주세요.");
+                return;
+            }
+
+            // Windows 메모장 등에서도 줄바꿈이 정상 표시되도록 CRLF(\r\n) 변환
+            const formattedText = rawText.replace(/\r?\n/g, "\r\n") + "\r\n";
+            const defaultFileName = "ALT_시료수_시험시간_계산결과.txt";
+
+            // 1) 브라우저가 File System Access API (탐색기 폴더 및 파일명 직접 지정 대화상자)를 지원하는 경우
+            if (typeof window.showSaveFilePicker === "function") {
+                try {
+                    const fileHandle = await window.showSaveFilePicker({
+                        suggestedName: defaultFileName,
+                        types: [
+                            {
+                                description: "텍스트 파일 (*.txt)",
+                                accept: { "text/plain": [".txt"] }
+                            }
+                        ]
+                    });
+                    const writable = await fileHandle.createWritable();
+                    await writable.write(formattedText);
+                    await writable.close();
+                    alert("텍스트 파일 저장이 완료되었습니다.");
+                    return;
+                } catch (err) {
+                    // 사용자가 저장 대화상자에서 '취소'를 누른 경우 중단
+                    if (err && err.name === "AbortError") {
+                        return;
+                    }
+                    // 보안 컨텍스트 제약 등으로 실패한 경우 아래 일반 다운로드 방식으로 자동 전환
+                }
+            }
+
+            // 2) Fallback: 파일명 입력 프롬프트 후 다운로드
+            const userFileName = prompt("저장할 텍스트 파일 이름을 입력해주세요 (.txt):", defaultFileName);
+            if (userFileName === null) {
+                return; // 취소 클릭 시
+            }
+            let finalName = userFileName.trim() || defaultFileName;
+            if (!finalName.toLowerCase().endsWith(".txt")) {
+                finalName += ".txt";
+            }
+
+            const blob = new Blob(["\uFEFF" + formattedText], { type: "text/plain;charset=utf-8;" });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.href = url;
+            link.download = finalName;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+        }
+
+        function closeProgram() {
+            if (confirm("출력 결과를 초기화하거나 프로그램을 종료하시겠습니까?\n(확인을 누르면 결과창이 초기화되고 브라우저 창 닫기를 시도합니다.)")) {
+                document.getElementById("outputText").innerHTML = "";
+                isInitialAutoRun = false;
+                window.close();
+            }
+        }
+
+        // ==============================================================================================
+        // 5. QSplitter Interactive Resizing + Enter Key Execution + Default Validation Run
+        // ==============================================================================================
+        (function initUI() {
+            const splitter = document.getElementById("splitterHandle");
+            const leftPanel = document.getElementById("leftPanel");
+            const centralWidget = document.getElementById("centralWidget");
+            let isDragging = false;
+
+            splitter.addEventListener("mousedown", () => {
+                isDragging = true;
+                document.body.style.cursor = "col-resize";
+            });
+
+            document.addEventListener("mousemove", (e) => {
+                if (!isDragging) return;
+                const rect = centralWidget.getBoundingClientRect();
+                let newLeftWidth = e.clientX - rect.left - 8;
+                const minLeft = 280;
+                const maxLeft = rect.width - 360;
+                if (newLeftWidth >= minLeft && newLeftWidth <= maxLeft) {
+                    leftPanel.style.width = newLeftWidth + "px";
+                }
+            });
+
+            document.addEventListener("mouseup", () => {
+                if (isDragging) {
+                    isDragging = false;
+                    document.body.style.cursor = "default";
+                }
+            });
+
+            // Enter key triggers execution on any input field
+            document.querySelectorAll(".line-edit").forEach((input) => {
+                input.addEventListener("keydown", (e) => {
+                    if (e.key === "Enter") {
+                        calculateResults(false);
+                    }
+                });
+            });
+
+            // Run initial validation calculation with default values on page load
+            calculateResults(true);
+        })();
+    </script>
+</body>
+</html>
